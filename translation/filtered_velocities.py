@@ -46,8 +46,8 @@ class FilteredVelocity(Node):
             '/velocity', 10)
 
         # Initialize subscriber to PX4 timesync topic
-        self.timesync_sub = self.create_subscription(TimesyncStatus, 
-            "/fmu/out/timesync_status", self.timesync_callback, qos_profile)
+        self.vehicle_odometry_sub = self.create_subscription(VehicleOdometry, 
+            "/fmu/out/vehicle_odometry", self.vehicle_odom_callback, qos_profile)
 
         # Initialize publisher to PX4 vehicle_visual_odometry topic
         self.vehicle_odometry_pub = self.create_publisher(VehicleOdometry, 
@@ -79,11 +79,10 @@ class FilteredVelocity(Node):
             dt = current_time - self.prev_time
             raw_velocity = (enu_coordinates - self.prev_position) / dt
             # Ignore velocity measurement if greater than 10 m/s
-            if np.linalg.norm(raw_velocity) < 10:
-                if self.filtered_velocity is None:
-                    self.filtered_velocity = raw_velocity
-                else:
-                    self.filtered_velocity = self.alpha * raw_velocity + (1 - self.alpha) * self.filtered_velocity
+            if np.linalg.norm(raw_velocity) < 10 and (self.filtered_velocity is not None):
+                self.filtered_velocity = self.alpha * raw_velocity + (1 - self.alpha) * self.filtered_velocity
+            else:
+                self.filtered_velocity = raw_velocity
             # frd_vel_coordinates = np.array([-self.filtered_velocity[0], self.filtered_velocity[1], self.filtered_velocity[2]])
             frd_vel_coordinates = np.array([self.filtered_velocity[1], self.filtered_velocity[0], -self.filtered_velocity[2]])
         else:
@@ -122,7 +121,7 @@ class FilteredVelocity(Node):
         self.vehicle_odometry_pub.publish(msg_px4)
         
     # Callback to keep timestamp for synchronization purposes
-    def timesync_callback(self, msg):
+    def vehicle_odom_callback(self, msg):
         self.timesync = msg.timestamp
 
 def main(args=None):
