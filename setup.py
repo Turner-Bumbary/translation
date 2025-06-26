@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
             'translator = translation.translator:main',
             'filtered_velocity = translation.filtered_velocities:main',
+            'position_only = translation.position_only:main',
         ],
     },
 )
